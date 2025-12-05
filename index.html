@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PixelNotes</title>
+
+  <!-- PWA manifest (create manifest.json separately) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6A5AF9">
+
+  <style>
+    :root{
+      --bg:#f4f6ff;
+      --card:#fff;
+      --muted:#6b7280;
+      --accent:#6A5AF9;
+      --accent-2:#8f84ff;
+      --danger:#ef4444;
+      --radius:12px;
+      --shadow: 0 8px 30px rgba(15,23,42,0.06);
+      --max-w:1100px;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0; background:var(--bg); color:#0f172a; -webkit-font-smoothing:antialiased;}
+    .wrap{max-width:var(--max-w); margin:28px auto; padding:20px;}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;}
+    .brand{display:flex; gap:12px; align-items:center;}
+    .logo{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:var(--shadow)}
+    h1{font-size:20px;margin:0}
+    .subtitle{font-size:12px;color:var(--muted)}
+
+    .app{display:flex; gap:18px; align-items:flex-start;}
+    .panel{background:var(--card); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow);}
+
+    /* left */
+    .left{width:340px; min-width:220px; max-height:76vh; overflow:auto; display:flex; flex-direction:column; gap:12px;}
+    .controls{display:flex; gap:8px;}
+    .search{flex:1; padding:10px 12px; border-radius:10px; border:1px solid #eef2ff; font-size:14px; outline:none;}
+    .btn{border:0;padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:700;background:var(--accent);color:white}
+    .btn.secondary{background:#64748b}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(106,90,249,0.12)}
+    .note-list{display:flex; flex-direction:column; gap:10px; padding-top:4px;}
+
+    .note-item{padding:12px;border-radius:10px;cursor:pointer;border:1px solid #f1f5ff; transition:transform .12s ease, box-shadow .12s ease; background:linear-gradient(180deg, rgba(255,255,255,1), rgba(250,250,255,1));}
+    .note-item:hover{transform:translateY(-4px); box-shadow:0 10px 24px rgba(12,15,40,0.06)}
+    .note-title{font-weight:700; font-size:14px; color:#071133}
+    .note-meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+    .note-preview{font-size:13px;color:#334155;margin-top:8px;line-height:1.3}
+
+    .tag-badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#f0f6ff;color:var(--accent);font-size:12px;margin-right:6px;margin-top:8px}
+
+    /* right editor */
+    .right{flex:1; min-height:64vh; display:flex; flex-direction:column; gap:12px;}
+    .field{display:flex; flex-direction:column; gap:6px}
+    label{font-size:13px;color:var(--muted)}
+    input[type="text"], textarea{padding:10px 12px;border-radius:10px;border:1px solid #eef2ff;font-size:14px;outline:none;background:transparent}
+    textarea{min-height:340px;resize:vertical}
+    .actions{display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap}
+    .small{padding:8px 10px;font-size:13px}
+    .muted{color:var(--muted)}
+
+    footer{margin-top:16px;font-size:13px;color:var(--muted)}
+
+    @media (max-width:920px){
+      .app{flex-direction:column}
+      .left{width:100%; max-height:none}
+    }
+  </style>
+
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">PN</div>
+        <div>
+          <h1>PixelNotes</h1>
+          <div class="subtitle">Clean. Fast. Offline-ready.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button id="exportBtn" class="btn ghost small">Export</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+        <button id="importBtn" class="btn ghost small">Import</button>
+      </div>
+    </header>
+
+    <main class="app">
+      <aside class="panel left" aria-label="Notes list">
+        <div class="controls">
+          <input id="search" class="search" placeholder="Search title, body or tags..." aria-label="Search notes" />
+          <button id="newBtn" class="btn small">New</button>
+        </div>
+
+        <div id="noteList" class="note-list" aria-live="polite"></div>
+        <div id="emptyLeft" style="padding:14px; text-align:center; color:var(--muted); display:none">No notes yet — click New to create one.</div>
+      </aside>
+
+      <section class="panel right" aria-label="Editor">
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" type="text" placeholder="Note title (optional)" />
+        </div>
+
+        <div class="field">
+          <label for="body">Note</label>
+          <textarea id="body" placeholder="Write your note..."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="tags">Tags (comma separated)</label>
+          <input id="tags" type="text" placeholder="e.g. ideas,school,todo" />
+        </div>
+
+        <div class="actions">
+          <span id="noteInfo" class="muted small">No note selected</span>
+          <div style="flex:1"></div>
+          <button id="saveBtn" class="btn small">Save</button>
+          <button id="deleteBtn" class="btn secondary small">Delete</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Tip: Press <strong>Ctrl/Cmd + S</strong> to save. Export creates notes.json, Import replaces notes.
+    </footer>
+  </div>
+
+  <script>
+    /* PixelNotes — single-file app logic */
+    const STORAGE_KEY = 'pixelnotes.v1';
+
+    // DOM
+    const noteListEl = document.getElementById('noteList');
+    const emptyLeft = document.getElementById('emptyLeft');
+    const searchEl = document.getElementById('search');
+    const newBtn = document.getElementById('newBtn');
+    const titleEl = document.getElementById('title');
+    const bodyEl = document.getElementById('body');
+    const tagsEl = document.getElementById('tags');
+    const saveBtn = document.getElementById('saveBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const noteInfo = document.getElementById('noteInfo');
+
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+
+    // state
+    let notes = [];
+    let activeId = null;
+
+    // helpers
+    const uid = () => 'pn_' + Date.now().toString(36) + Math.floor(Math.random()*1000).toString(36);
+    const now = () => Date.now();
+    const saveToStorage = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    const loadFromStorage = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('parse error', e);
+        return [];
+      }
+    };
+    const escapeHtml = s => (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+
+    // render
+    function renderList(filter=''){
+      const q = (filter||'').trim().toLowerCase();
+      noteListEl.innerHTML = '';
+
+      const filtered = notes.filter(n => {
+        if(!q) return true;
+        const hay = ((n.title||'') + ' ' + (n.body||'') + ' ' + (n.tags||[]).join(' ')).toLowerCase();
+        return hay.includes(q);
+      });
+
+      if(filtered.length === 0){
+        emptyLeft.style.display = notes.length ? 'none' : 'block';
+        if(notes.length && q) emptyLeft.textContent = `No results for "${q}"`;
+        else emptyLeft.textContent = 'No notes yet — click New to create one.';
+      } else {
+        emptyLeft.style.display = 'none';
+      }
+
+      // most recently updated first
+      filtered.sort((a,b)=> b.updatedAt - a.updatedAt);
+
+      filtered.forEach(n => {
+        const el = document.createElement('div');
+        el.className = 'note-item';
+        el.tabIndex = 0;
+
+        const title = escapeHtml(n.title || '(no title)');
+        const preview = escapeHtml((n.body||'')).slice(0,160);
+        const date = new Date(n.updatedAt).toLocaleString();
+        const tagsHtml = (n.tags||[]).slice(0,4).map(t=>`<span class="tag-badge">#${escapeHtml(t)}</span>`).join('');
+
+        el.innerHTML = `
+          <div>
+            <div class="note-title">${title}</div>
+            <div class="note-meta">
+              <span>${date}</span>
+            </div>
+            <div class="note-preview">${preview}${(n.body && n.body.length>160)?'…':''}</div>
+            <div>${tagsHtml}</div>
+          </div>
+        `;
+
+        el.onclick = () => loadNote(n.id);
+        el.onkeydown = e => { if(e.key === 'Enter') loadNote(n.id); };
+
+        noteListEl.appendChild(el);
+      });
+    }
+
+    // editor
+    function newNote(){
+      activeId = null;
+      titleEl.value = '';
+      bodyEl.value = '';
+      tagsEl.value = '';
+      noteInfo.textContent = 'Creating new note';
+      titleEl.focus();
+    }
+
+    function loadNote(id){
+      const n = notes.find(x=>x.id===id); if(!n) return;
+      activeId = id;
+      titleEl.value = n.title || '';
+      bodyEl.value = n.body || '';
+      tagsEl.value = (n.tags||[]).join(',');
+      noteInfo.textContent = 'Editing • ' + (n.title || '(no title)');
+    }
+
+    function saveActive(){
+      const t = titleEl.value.trim();
+      const b = bodyEl.value.trim();
+      const rawTags = (tagsEl.value || '').split(',').map(s=>s.trim()).filter(Boolean);
+      const ts = rawTags.map(s => s.replaceAll('#',''));
+      if(!t && !b){ alert('Note is empty. Add a title or body.'); return; }
+
+      const timestamp = now();
+      if(activeId){
+        const n = notes.find(x=>x.id===activeId);
+        if(!n) return;
+        n.title = t; n.body = b; n.tags = ts; n.updatedAt = timestamp;
+      } else {
+        const n = { id: uid(), title: t, body: b, tags: ts, createdAt: timestamp, updatedAt: timestamp };
+        notes.push(n);
+        activeId = n.id;
+      }
+      saveToStorage();
+      renderList(searchEl.value);
+      noteInfo.textContent = 'Saved • ' + (titleEl.value || '(no title)');
+    }
+
+    function deleteActive(){
+      if(!activeId){ alert('No note selected'); return; }
+      if(!confirm('Delete this note? This cannot be undone.')) return;
+      notes = notes.filter(x => x.id !== activeId);
+      activeId = null;
+      saveToStorage();
+      newNote();
+      renderList(searchEl.value);
+    }
+
+    // export/import
+    function exportNotes(){
+      const data = JSON.stringify(notes, null, 2);
+      const blob = new Blob([data], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'pixelnotes.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function triggerImport(){
+      importFile.value = null; importFile.click();
+    }
+
+    function handleImportFile(file){
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if(!Array.isArray(imported)) throw new Error('Invalid format (expected array)');
+          const ok = imported.every(it => it && typeof it.id === 'string' && typeof it.updatedAt === 'number');
+          if(!ok && !confirm('Imported file is not a standard PixelNotes export. Replace anyway?')) return;
+          notes = imported; saveToStorage(); activeId = null; newNote(); renderList();
+          alert('Import successful');
+        } catch(err) {
+          alert('Import failed: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // init
+    function init(){
+      notes = loadFromStorage();
+      renderList();
+
+      // events
+      newBtn.onclick = newNote;
+      saveBtn.onclick = saveActive;
+      deleteBtn.onclick = deleteActive;
+      searchEl.oninput = () => renderList(searchEl.value);
+      exportBtn.onclick = exportNotes;
+      importBtn.onclick = triggerImport;
+      importFile.onchange = (e) => { if(e.target.files && e.target.files[0]) handleImportFile(e.target.files[0]); };
+
+      // keyboard shortcut
+      window.addEventListener('keydown', (e) => {
+        if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+          e.preventDefault(); saveActive();
+        }
+      });
+
+      // quick new note on double-click left panel
+      noteListEl.addEventListener('dblclick', newNote);
+    }
+
+    // run
+    init();
+
+    // register service worker (PWA) if available
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(()=> console.log('SW registered'))
+          .catch(err=> console.warn('SW failed', err));
+      });
+    }
+  </script>
+</body>
+</html>
