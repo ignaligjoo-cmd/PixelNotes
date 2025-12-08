@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PixelNotes</title>
+
+  <!-- Link CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- App Icon (for PWA feel) -->
+  <link rel="icon" href="icon.png">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">P</div>
+      <h1>PixelNotes</h1>
+    </div>
+
+    <input id="search" class="search" placeholder="Search notes...">
+  </header>
+
+  <main class="container">
+
+    <!-- Left Sidebar / Note List -->
+    <aside class="sidebar">
+      <button id="newBtn" class="btn new">New Note</button>
+
+      <div id="noteList" class="note-list"></div>
+      <p id="emptyList" class="empty">No notes yet</p>
+    </aside>
+
+    <!-- Editor -->
+    <section class="editor">
+      <input id="title" class="titleInput" placeholder="Note title">
+      <textarea id="body" class="bodyInput" placeholder="Write your note here..."></textarea>
+
+      <div class="actions">
+        <button id="saveBtn" class="btn primary">Save</button>
+        <button id="deleteBtn" class="btn danger">Delete</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Link JS -->
+  <script src="app.js"></script>
+</body>
+</html>
